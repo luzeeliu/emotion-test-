@@ -18,6 +18,8 @@ hashmap = {
     "5":"surprise"
 }
 
+
+
 #print(file.head())
 
 
@@ -55,23 +57,30 @@ class TweetDataset_BERT(Dataset):
 #################LSTM#################
 def tokenize(text):
     # Simple tokenizer: lowercase, remove non-letters, split by space
+    #lowercase the word
     text = text.lower()
+    #remove the characters that not lowercase or spaces us re to achieve this
     text = re.sub(r'[^a-z\s]', '', text)
     return text.split()
 
 def build_vocab(texts, min_freq=2):
+    #calculate the word appear in the centances
     counter = Counter()
     for text in texts:
         tokens = tokenize(text)
         counter.update(tokens)
-
+    
+    #initial PAD and UNKNOW to record the padding and unknown words
     vocab = {'<PAD>': 0, '<UNK>': 1}
+    #teh vocab dictionary does not store word frequencies it only maps each word to a unique integer index
     for word, freq in counter.items():
+        #match the min number limit
         if freq >= min_freq:
             vocab[word] = len(vocab)
     return vocab
 
 def encode(text, vocab, max_len):
+    #convert the word to ID
     tokens = tokenize(text)
     ids = [vocab.get(token, vocab['<UNK>']) for token in tokens]
     if len(ids) < max_len:
@@ -81,7 +90,7 @@ def encode(text, vocab, max_len):
     return ids
 
 class LSTMDataset(Dataset):
-    def __init__(self, dataframe, vocab, max_len=50):
+    def __init__(self, dataframe, vocab, max_len=100):
         self.texts = dataframe['text'].tolist()
         self.labels = dataframe['label'].tolist()
         self.vocab = vocab
