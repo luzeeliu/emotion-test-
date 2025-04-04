@@ -7,7 +7,7 @@ import re
 from collections import Counter
 
 path = os.path.join("data", "combined_shuffled.csv")
-file = pd.read_csv(path)
+df = pd.read_csv(path)
 
 hashmap = {
     "0":"sadness",
@@ -81,8 +81,11 @@ def build_vocab(texts, min_freq=2):
 
 def encode(text, vocab, max_len):
     #convert the word to ID
+    #get text from the dataframe
     tokens = tokenize(text)
+    #find the word's id in vocab and get the ID as an array
     ids = [vocab.get(token, vocab['<UNK>']) for token in tokens]
+    #the output is like [5, 9,6 00 0 0]
     if len(ids) < max_len:
         ids += [vocab['<PAD>']] * (max_len - len(ids))
     else:
@@ -91,6 +94,7 @@ def encode(text, vocab, max_len):
 
 class LSTMDataset(Dataset):
     def __init__(self, dataframe, vocab, max_len=100):
+        #get the text and label from csv
         self.texts = dataframe['text'].tolist()
         self.labels = dataframe['label'].tolist()
         self.vocab = vocab
