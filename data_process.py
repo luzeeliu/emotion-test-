@@ -2,7 +2,6 @@ import pandas as pd
 import os
 from torch.utils.data import Dataset
 import torch
-from transformers import BertTokenizer
 import re
 from collections import Counter
 
@@ -22,7 +21,7 @@ hashmap = {
 
 #print(file.head())
 
-
+"""
 ###############BERT#################
 #load the  protrain model 
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
@@ -53,7 +52,7 @@ class TweetDataset_BERT(Dataset):
             'attention_mask': encoding['attention_mask'].squeeze(0),
             'labels': torch.tensor(label, dtype=torch.long)
         }
-
+"""
 #################LSTM#################
 def tokenize(text):
     # Simple tokenizer: lowercase, remove non-letters, split by space
@@ -114,10 +113,11 @@ class LSTMDataset(Dataset):
 
 def processed_LSTM(df, max_len=50):
     vocab = build_vocab(df['text'])
-    return LSTMDataset(df, vocab, max_len)
+    n = len(vocab)
+    return LSTMDataset(df, vocab, max_len), n
 
-def processed_BERT(df):
-    return TweetDataset_BERT(df, tokenizer)
+#def processed_BERT(df):
+#    return TweetDataset_BERT(df, tokenizer)
 
 
 
