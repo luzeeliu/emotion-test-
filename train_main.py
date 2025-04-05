@@ -63,22 +63,23 @@ def main():
     #train_loader_BERT = DataLoader(file_bert, batch_size = 16, shuffle = True)
     #LSTM
     train_dataset_LSTM, n = processed_LSTM(file, max_len = 50)
-    train_loader_LSTM = DataLoader(train_dataset_LSTM, batch_size=16, shuffle=True)
+    train_loader_LSTM = DataLoader(train_dataset_LSTM, batch_size=64, shuffle=True, num_workers=4, pin_memory=True)
     
     #device use GPU
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
     #model select
     model1 = LSTM_model(vocab_size = n, embed_dim= 100, num_hid= 128, num_out= 6)
-    """
+    #loade pretrain model
+
     model1.load_state_dict(torch.load(path_save))
     model1.to(device)
     model1.eval()
-    """
+
     #model2 = BERT_model().to(device)
     
     #optimizer select
-    optimizer = Adam(model1.parameters(), lr = 2e-5)
+    optimizer = Adam(model1.parameters(), lr = 1e-3)
     
     #epoch set
     epoch = 5
