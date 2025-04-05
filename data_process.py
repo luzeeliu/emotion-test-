@@ -111,10 +111,11 @@ class LSTMDataset(Dataset):
             'labels': torch.tensor(label, dtype=torch.long)
         }
 
-def processed_LSTM(df, max_len=50):
-    vocab = build_vocab(df['text'])
-    n = len(vocab)
-    return LSTMDataset(df, vocab, max_len), n
+def processed_LSTM(df, vocab=None, max_len=50):
+    if vocab is None:
+        vocab = build_vocab(df['text'])
+    return LSTMDataset(df, vocab, max_len), vocab
+
 
 #def processed_BERT(df):
 #    return TweetDataset_BERT(df, tokenizer)
