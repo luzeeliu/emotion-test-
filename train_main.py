@@ -3,11 +3,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 import pandas as pd
 import os
+import pickle
 from torch.optim import Adam
 from model_class import LSTM_model
 from torchvision import datasets
 from torch.utils.data import DataLoader
 from data_process import processed_LSTM
+from evaluate import evaluate_model
 
 
 path_train = os.path.join("data", "combined_shuffled_8000.csv")
@@ -50,7 +52,7 @@ def LSTM_train(model, device, train_loader, validation_loader_LSTM, optimizer,cr
         acc = correct / total
         print(f"Epoch {i+1}, Loss: {total_loss:.4f}, average loss:{avg_loss:.4f}, accuracy:{acc:.2%}")
         #test overfitting
-        val_loss, val_acc = validation(model, device, validation_loader_LSTM, criterion)
+        val_loss, val_acc,_,_ = validation(model, device, validation_loader_LSTM, criterion)
         print(f"Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_acc:.2%}")
 
     torch.save(model.state_dict(), path_save)
@@ -58,27 +60,34 @@ def LSTM_train(model, device, train_loader, validation_loader_LSTM, optimizer,cr
 
 #validation function to test overfitting
 def validation(model, device, val_loader, criterion):
+    # base attribute for accuracy and confusion matrix
     model.eval()  # Turn off dropout, etc.
     total_loss = 0
     correct = 0
     total = 0
+    all_preds = []
+    all_labels = []
 
+    # set gradient not change
     with torch.no_grad():
         for batch in val_loader:
             input_ids = batch['input_ids'].to(device)
             labels = batch['labels'].to(device)
 
             outputs = model(input_ids)
+            # in validation it dont need optimizer and backword
             loss = criterion(outputs, labels)
             total_loss += loss.item()
 
             preds = torch.argmax(outputs, dim=1)
+            all_preds.extend(preds.cpu().numpy())
+            all_labels.extend(labels.cpu().numpy())
             correct += (preds == labels).sum().item()
             total += labels.size(0)
 
     avg_loss = total_loss / len(val_loader)
     accuracy = correct / total
-    return avg_loss, accuracy
+    return avg_loss, accuracy, all_preds, all_labels
 
     
 
@@ -91,11 +100,15 @@ def main():
     #train_loader_BERT = DataLoader(file_bert, batch_size = 16, shuffle = True)
     #LSTM
     train_dataset_LSTM, vocab = processed_LSTM(train_data, max_len = 50)
-    train_loader_LSTM = DataLoader(train_dataset_LSTM, batch_size=64, shuffle=True, num_workers=0, pin_memory=True)
+    train_loader_LSTM = DataLoader(train_dataset_LSTM, batch_size=32, shuffle=True, num_workers=0, pin_memory=True)
     n = len(vocab)
+    # save vocab to pickel use it in test time
+    with open("net/vocab.pkl", "wb") as f:
+        pickle.dump(vocab, f)
+
     #load validation data
     validation_dataset_LSTM, _ =processed_LSTM(v_data,vocab=vocab, max_len= 50)
-    validation_loader_LSTM = DataLoader(validation_dataset_LSTM, batch_size=64, shuffle=True, num_workers=0, pin_memory=True)
+    validation_loader_LSTM = DataLoader(validation_dataset_LSTM, batch_size=32, shuffle=True, num_workers=0, pin_memory=True)
     
     #device use GPU
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -122,6 +135,8 @@ def main():
     
     #trainning
     LSTM_train(model1, device, train_loader_LSTM,validation_loader_LSTM, optimizer,criterion, epoch)
+    _,_, y_pred, y_true = validation(model1, device, validation_loader_LSTM, criterion)
+    evaluate_model(y_pred, y_true, "LSTM")
 
 if __name__ == '__main__':
     main()
